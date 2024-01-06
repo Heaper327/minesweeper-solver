@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from random import randint
 import random
 
 @dataclass
@@ -41,6 +40,10 @@ class Board:
     """
     numRows: int
     numCols: int
+    """
+    Status of the game, 0 represents in progress, 1 means won, and 2 means lost
+    """
+    status: int
 
     """
     Create an n-by-m game of minesweeper, with randomly placed mines using the given seed.
@@ -49,22 +52,19 @@ class Board:
     numMines-- The number of mines on the board
     seed    -- Random seed used to place mines, same seed guarantees same placement of mines
     """
-    def __init__(self, n, m, numMines, seed=None) -> None:
-        self.board = [[Tile(False, True, False, 0) for col in range(m)] for row in range(n)]
+    def __init__(self, n: int, m: int, numMines: int, seed=None) -> None:
+        self.board = [[Tile(False, False, False, 0) for col in range(m)] for row in range(n)]
         self.numRows = n
         self.numCols = m
+        self.status = 0
         # populate board with mines randomly, and calculate each tile's number of adjacent mines
         random.seed(seed)
-        numPlaced = 0
-        while numPlaced < numMines:
-            row, col = randint(0, n - 1), randint(0, m - 1)
-            tile = self.board[row][col]
-            if not tile.mined:
-                tile.mined = True
-                numPlaced += 1
-                for neighbor in self.__getNeighbors(row, col):
-                    neighbor.adjacentMines += 1
-        pass
+        indices = [i for i in range(n * m)]
+        for index in random.sample(indices, numMines):
+            row, col = int(index / m), index % m
+            self.board[row][col].mined = True
+            for i, j in self.__getNeighbors(row, col):
+                    self.board[i][j].adjacentMines += 1
 
     """
     Return the current state of the board as an n-by-m array of characters, 
@@ -81,6 +81,7 @@ class Board:
         pretty = {
             '!': '💥',
             'X': '🎌',
+            '?': '🟦',
             '0': '⬜',
             '1': '1️⃣ ', # vscode treats keycap emojis as half-width characters, needs to pad with a space
             '2': '2️⃣ ',
@@ -96,11 +97,33 @@ class Board:
 
     """
     Open the tile at row, col if it is unopened, and possibly open its adjacent non-mine tiles.
+    Does nothing if row, col is out of bound or the tile is already opened
     row     -- The row of the tile to be opened
     col     -- The column of the tile to be opened
     """
-    def open(row, col) -> None:
-        pass
+    def open(self, row: int, col: int) -> None:
+        if not self.__isValid(row, col):
+            return
+        
+        tile = self.board[row][col]
+        # do nothing if already opened, this prevents infinite loops
+        if tile.opened:
+            return
+        tile.opened = True
+
+        # if tile is mined, game over - open all tiles
+        if tile.mined:
+            self.status = 2
+            for row in self.board:
+                for tile in row:
+                    tile.opened = True
+            return
+        
+        # if its neighbors are all unmined, recursively reveal its neighbors
+        if tile.adjacentMines == 0:
+            for i, j in self.__getNeighbors(row, col):
+                self.open(i, j)
+    
 
     """
     Flag the tile at row, col if it has not been flagged already
@@ -113,20 +136,20 @@ class Board:
     """
     Returns whether the game has been won, aka all non-mine tiles have been opened.
     """
-    def hasWon() -> bool:
-        pass
+    def hasWon(self) -> bool:
+        return self.status == 1
 
     """
     Return whether the game has been lost, aka a mined tile has been opened. 
     """
-    def hasLost() -> bool:
-        pass
+    def hasLost(self) -> bool:
+        return self.status == 2
 
     """
     Return a list of tiles adjacent to (row, col), including diagonal tiles
     """
-    def __getNeighbors(self, row, col) -> list[Tile]:
-        return [self.board[i][j] 
+    def __getNeighbors(self, row, col) -> list[int, int]:
+        return [[i, j]
                 for i in range(row - 1, row + 2) 
                 for j in range(col - 1, col + 2)
                 if self.__isValid(i, j) and (i, j) != (row, col)]
