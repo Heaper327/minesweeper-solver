@@ -15,8 +15,12 @@ def main():
             print("Malformed input, please try again")
             continue
         action = tokens[0]
-        row = int(tokens[1]) - 1 # Convert from 1-indexed to 0-indexed
-        col = int(tokens[2]) - 1
+        try:
+            row = int(tokens[1]) - 1 # Convert from 1-indexed to 0-indexed
+            col = int(tokens[2]) - 1
+        except ValueError:
+            print("Row or column index cannot be parsed, please try again.")
+            continue
 
         if action == 'f':
             game.flag(row, col)
