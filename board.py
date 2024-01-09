@@ -154,9 +154,12 @@ class Game:
     return  -- True if the tile could be flagged / unflagged, false otherwise
     """
     def flag(self, row: int, col: int) -> bool:
+        if not self.__isValid(row, col):
+            return False
         tile = self.board[row][col]
         if tile.opened:
             return False
+        
         tile.flagged = not tile.flagged
         return True
 
