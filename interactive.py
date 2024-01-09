@@ -1,4 +1,4 @@
-from board import Game
+from game import Game
 
 """
 Command line interface of the game, used for testing purposes
